@@ -2,15 +2,15 @@
 Prism is a web-based decision intelligence platform that helps users compare multiple options using weighted criteria, intelligent scoring, rankings, and analytics to make better decisions.
 
 ##  Features
-- 🔐 User Authentication
-- 📋 Decision Management
-- ⚖️ Weighted Decision Scoring
-- 📊 Option Comparison & Ranking
-- 📈 Analytics Dashboard
-- 📑 Reports & Excel Export
-- 🔍 Search Functionality
-- 🌙 Dark Mode
-- 👤 User Profile & Settings
+-  User Authentication
+-  Decision Management
+-  Weighted Decision Scoring
+-  Option Comparison & Ranking
+-  Analytics Dashboard
+-  Reports & Excel Export
+-  Search Functionality
+-  Dark Mode
+-  User Profile & Settings
 
 ##  Tech Stack
 - **Frontend:** HTML, CSS, Bootstrap, JavaScript
