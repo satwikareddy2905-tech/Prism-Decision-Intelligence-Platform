@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Decision Analytics & Personal Insights{% endblock %}
+
+{% block breadcrumb %}
+<span>Insights</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Analytics</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center flex-wrap gap-4 mb-6">
+  <div>
+    <h1 class="page-title">Personal Decision Insights</h1>
+    <p class="page-subtitle">Behavioral analytics, category distribution, decision velocity, and post-choice satisfaction trends.</p>
+  </div>
+</div>
+
+{% if insights.empty %}
+  <div class="card p-12">
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>
+      <div class="empty-state-title">No analytics available yet</div>
+      <div class="empty-state-text">Create and evaluate decisions to generate personal intelligence graphs.</div>
+      <a href="{{ url_for('decisions.new_decision') }}" class="btn btn-primary btn-sm">Create Decision</a>
+    </div>
+  </div>
+{% else %}
+
+  <!-- KPI Overview Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+    <div class="stat-box">
+      <div class="stat-label">Completion Rate</div>
+      <div class="stat-value text-primary">{{ insights.completion_rate }}%</div>
+      <div class="stat-sub">{{ insights.completed_decisions }} of {{ insights.total_decisions }} finalized</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">Favorite Category</div>
+      <div class="stat-value text-text text-lg font-semibold">{{ insights.favorite_category or 'N/A' }}</div>
+      <div class="stat-sub">Most frequent decision domain</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">Avg Satisfaction</div>
+      <div class="stat-value text-success">
+        {{ insights.avg_satisfaction or '—' }} <span class="text-xs text-muted">/ 10</span>
+      </div>
+      <div class="stat-sub">From post-decision journal entries</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">Choice Regret Rate</div>
+      <div class="stat-value text-secondary">
+        {% if insights.would_choose_again_rate is not none %}
+          {{ (100 - insights.would_choose_again_rate)|round(1) }}%
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="stat-sub">Would choose differently next time</div>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    <!-- Category Distribution Doughnut Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Decisions by Category</div>
+      </div>
+      <div class="card-body">
+        <div style="height: 260px; position: relative;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Decisions Trend Bar Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Monthly Decision Activity (Last 6 Months)</div>
+      </div>
+      <div class="card-body">
+        <div style="height: 260px; position: relative;">
+          <canvas id="monthlyChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Criteria & Satisfaction Trend -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    <!-- Frequently Used Criteria List -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Most Frequently Used Evaluation Factors</div>
+      </div>
+      <div class="card-body p-0">
+        {% if insights.top_criteria %}
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Criterion Name</th>
+                  <th style="text-align:right">Usage Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in insights.top_criteria %}
+                  <tr>
+                    <td class="font-medium text-text">{{ item.name }}</td>
+                    <td style="text-align:right"><span class="badge badge-primary">{{ item.count }} times</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-4 text-xs text-muted">No criteria usage data yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Post-Choice Satisfaction Line Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Post-Decision Satisfaction Trend</div>
+      </div>
+      <div class="card-body">
+        <div style="height: 240px; position: relative;">
+          <canvas id="satisfactionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if not insights.empty %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const categoryData = {{ insights.category_distribution|tojson }};
+  const monthlyData = {{ insights.monthly_decisions|tojson }};
+  const satisfactionData = {{ insights.satisfaction_trend|tojson }};
+
+  // Color palette
+  const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+
+  // 1. Category Doughnut Chart
+  const catCtx = document.getElementById('categoryChart')?.getContext('2d');
+  if (catCtx) {
+    new Chart(catCtx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(categoryData),
+        datasets: [{
+          data: Object.values(categoryData),
+          backgroundColor: colors,
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter' } } }
+        }
+      }
+    });
+  }
+
+  // 2. Monthly Activity Bar Chart
+  const monthCtx = document.getElementById('monthlyChart')?.getContext('2d');
+  if (monthCtx) {
+    new Chart(monthCtx, {
+      type: 'bar',
+      data: {
+        labels: monthlyData.map(d => d.month),
+        datasets: [{
+          label: 'Decisions Created',
+          data: monthlyData.map(d => d.count),
+          backgroundColor: '#2563EB',
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  // 3. Satisfaction Trend Line Chart
+  const satCtx = document.getElementById('satisfactionChart')?.getContext('2d');
+  if (satCtx && satisfactionData.length > 0) {
+    new Chart(satCtx, {
+      type: 'line',
+      data: {
+        labels: satisfactionData.map(d => d.date),
+        datasets: [{
+          label: 'Satisfaction (1-10)',
+          data: satisfactionData.map(d => d.score),
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 1, max: 10, ticks: { stepSize: 1 } }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Criteria Builder — {{ decision.title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('decisions.index') }}">Decisions</a>
+<span class="separator">/</span>
+<a href="{{ url_for('decisions.detail', decision_id=decision.id) }}">{{ decision.title }}</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">Criteria</span>
+{% endblock %}
+
+{% block content %}
+<!-- Stepper -->
+<div class="stepper">
+  <div class="stepper-step completed">
+    <div class="stepper-number"><i class="bi bi-check"></i></div>
+    <span>Basic Details</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step active">
+    <div class="stepper-number">2</div>
+    <span>Define Criteria</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step">
+    <div class="stepper-number">3</div>
+    <span>Add Options</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step">
+    <div class="stepper-number">4</div>
+    <span>Evaluate & Score</span>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+
+  <!-- Form to add criterion -->
+  <div>
+    <div class="card sticky-top" style="top: 80px;">
+      <div class="card-header">
+        <div class="card-title">Add Evaluation Criterion</div>
+      </div>
+      <div class="card-body">
+        <form id="add-criterion-form">
+          <div class="form-group">
+            <label class="form-label" for="crit-name">Criterion Name <span class="required">*</span></label>
+            <input type="text" id="crit-name" class="form-control" placeholder="e.g., Battery Life, Salary, Price, Location" required>
+            <div class="form-hint">What factor matters in this decision?</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="crit-weight">Importance Weight (1 – 10)</label>
+            <div class="flex items-center gap-3">
+              <input type="range" id="crit-weight" class="form-range flex-1" min="1" max="10" step="0.5" value="5.0" oninput="document.getElementById('weight-val').textContent = parseFloat(this.value).toFixed(1)">
+              <span id="weight-val" class="font-semibold text-primary" style="width: 32px; text-align: right;">5.0</span>
+            </div>
+            <div class="form-hint">Higher weight gives this factor more influence in calculations.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="crit-priority">Priority</label>
+            <select id="crit-priority" class="form-select">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="crit-desc">Description / Guidance (Optional)</label>
+            <textarea id="crit-desc" class="form-control" rows="2" placeholder="e.g., Must last at least 8 hours on a full charge..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-check">
+              <input type="checkbox" id="crit-mandatory" class="form-check-input">
+              <span class="form-check-label">Mandatory (Must-have requirement)</span>
+            </label>
+            <div class="form-hint">Options scoring below 5 on mandatory criteria get flagged as non-compliant.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-full mt-2">
+            <i class="bi bi-plus-lg"></i> Add Criterion
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- List of existing criteria -->
+  <div style="grid-column: span 2;">
+    <div class="card mb-6">
+      <div class="card-header flex justify-between items-center">
+        <div>
+          <div class="card-title">Configured Criteria ({{ criteria|length }})</div>
+          <div class="text-xs text-secondary mt-1">Drag handles to reorder criteria by priority.</div>
+        </div>
+        <div class="text-xs font-semibold text-primary">
+          Total Weight: <span id="total-weight-disp">{{ total_weight|round(1) }}</span>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <div id="criteria-list">
+          {% for criterion in criteria %}
+            <div class="list-item" data-id="{{ criterion.id }}">
+              <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-text">{{ criterion.name }}</span>
+                  {% if criterion.is_mandatory %}
+                    <span class="badge badge-danger">Mandatory</span>
+                  {% endif %}
+                  <span class="badge badge-neutral">{{ criterion.priority_label }} Priority</span>
+                </div>
+                {% if criterion.description %}
+                  <div class="text-xs text-secondary mt-1 truncate">{{ criterion.description }}</div>
+                {% endif %}
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="weight-pill">
+                  Weight: {{ criterion.weight|round(1) }}
+                </div>
+                <button class="btn btn-ghost btn-icon-sm text-primary" onclick="openEditCriterionModal({{ criterion.id }}, {{ criterion.name|tojson }}, {{ criterion.weight }}, {{ criterion.priority|tojson }}, {{ 'true' if criterion.is_mandatory else 'false' }}, {{ (criterion.description or '')|tojson }})" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-ghost btn-icon-sm text-danger" onclick="deleteCriterion({{ criterion.id }}, {{ criterion.name|tojson }})" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          {% else %}
+            <div id="empty-criteria-msg" class="empty-state py-8">
+              <div class="empty-state-icon"><i class="bi bi-sliders"></i></div>
+              <div class="empty-state-title">No criteria added yet</div>
+              <div class="empty-state-text">Use the form on the left to add your first evaluation factor.</div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card-footer flex justify-between items-center">
+        <a href="{{ url_for('decisions.detail', decision_id=decision.id) }}" class="btn btn-secondary">
+          Back to Workspace
+        </a>
+        <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="btn btn-primary">
+          Next: Add Options <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Edit Criterion -->
+<div class="modal fade" id="editCriterionModal" tabindex="-1" aria-labelledby="editCriterionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--color-surface); border: 1px solid var(--color-border);">
+      <form id="edit-criterion-form">
+        <input type="hidden" id="edit-crit-id">
+        <div class="modal-header">
+          <h5 class="modal-title font-semibold" id="editCriterionModalLabel">Edit Criterion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="edit-crit-name">Criterion Name <span class="required">*</span></label>
+            <input type="text" id="edit-crit-name" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-crit-weight">Importance Weight (1 – 10)</label>
+            <div class="flex items-center gap-3">
+              <input type="range" id="edit-crit-weight" class="form-range flex-1" min="1" max="10" step="0.5" oninput="document.getElementById('edit-weight-val').textContent = parseFloat(this.value).toFixed(1)">
+              <span id="edit-weight-val" class="font-semibold text-primary" style="width: 32px; text-align: right;">5.0</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-crit-priority">Priority</label>
+            <select id="edit-crit-priority" class="form-select">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-crit-desc">Description / Guidance (Optional)</label>
+            <textarea id="edit-crit-desc" class="form-control" rows="2"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-check">
+              <input type="checkbox" id="edit-crit-mandatory" class="form-check-input">
+              <span class="form-check-label">Mandatory (Must-have requirement)</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DECISION_ID = {{ decision.id }};
+let editModalObj = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  editModalObj = new bootstrap.Modal(document.getElementById('editCriterionModal'));
+});
+
+// Init SortableJS for drag-and-drop
+const el = document.getElementById('criteria-list');
+if (el) {
+  new Sortable(el, {
+    handle: '.drag-handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    onEnd: function() {
+      const order = Array.from(el.querySelectorAll('.list-item')).map(item => parseInt(item.dataset.id));
+      apiFetch(`/api/decisions/${DECISION_ID}/criteria/reorder`, {
+        method: 'POST',
+        body: JSON.stringify({ order: order })
+      }).catch(err => Toast.error('Error saving order', err.message));
+    }
+  });
+}
+
+// Add criterion form handler
+document.getElementById('add-criterion-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('crit-name').value.trim();
+  const weight = parseFloat(document.getElementById('crit-weight').value);
+  const priority = document.getElementById('crit-priority').value;
+  const description = document.getElementById('crit-desc').value.trim();
+  const is_mandatory = document.getElementById('crit-mandatory').checked;
+
+  if (!name) return;
+
+  try {
+    const data = await apiFetch(`/api/decisions/${DECISION_ID}/criteria`, {
+      method: 'POST',
+      body: JSON.stringify({ name, weight, priority, description, is_mandatory })
+    });
+
+    Toast.success('Criterion added', data.name);
+    window.location.reload();
+  } catch (err) {
+    Toast.error('Failed to add criterion', err.message);
+  }
+});
+
+// Edit criterion opener
+function openEditCriterionModal(id, name, weight, priority, isMandatory, description) {
+  document.getElementById('edit-crit-id').value = id;
+  document.getElementById('edit-crit-name').value = name;
+  document.getElementById('edit-crit-weight').value = weight;
+  document.getElementById('edit-weight-val').textContent = parseFloat(weight).toFixed(1);
+  document.getElementById('edit-crit-priority').value = priority;
+  document.getElementById('edit-crit-desc').value = description || '';
+  document.getElementById('edit-crit-mandatory').checked = isMandatory;
+  editModalObj.show();
+}
+
+// Edit form submit handler
+document.getElementById('edit-criterion-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('edit-crit-id').value;
+  const name = document.getElementById('edit-crit-name').value.trim();
+  const weight = parseFloat(document.getElementById('edit-crit-weight').value);
+  const priority = document.getElementById('edit-crit-priority').value;
+  const description = document.getElementById('edit-crit-desc').value.trim();
+  const is_mandatory = document.getElementById('edit-crit-mandatory').checked;
+
+  if (!name || !id) return;
+
+  try {
+    await apiFetch(`/api/criteria/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, weight, priority, description, is_mandatory })
+    });
+
+    Toast.success('Criterion updated');
+    editModalObj.hide();
+    window.location.reload();
+  } catch (err) {
+    Toast.error('Failed to update criterion', err.message);
+  }
+});
+
+// Delete criterion
+async function deleteCriterion(id, name) {
+  confirmAction(`Delete criterion "${name}"? Existing scores for this criterion will be removed.`, async () => {
+    try {
+      await apiFetch(`/api/criteria/${id}`, { method: 'DELETE' });
+      Toast.success('Criterion deleted');
+      window.location.reload();
+    } catch (err) {
+      Toast.error('Failed to delete', err.message);
+    }
+  }, { danger: true });
+}
+</script>
+{% endblock %}

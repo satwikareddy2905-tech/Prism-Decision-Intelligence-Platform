@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results{% endblock %}
+
+{% block breadcrumb %}
+<span>Workspace</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Search</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-6">
+  <h1 class="page-title">Search</h1>
+  <p class="page-subtitle">Instantly search decisions, criteria, options, and journal reflections.</p>
+</div>
+
+<!-- Search Input -->
+<div class="card mb-8 p-4">
+  <form method="GET" action="{{ url_for('search.index') }}" class="search-input-wrapper">
+    <i class="bi bi-search search-icon"></i>
+    <input type="text" name="q" id="global-search-input" class="form-control form-control-lg" placeholder="Search anything (e.g. Laptop, Salary, Battery, Price)..." value="{{ query }}" autofocus>
+  </form>
+</div>
+
+{% if query %}
+  {% if results and results.total_count > 0 %}
+    <div class="text-sm font-semibold text-secondary mb-4">
+      Found {{ results.total_count }} matching result{% if results.total_count > 1 %}s{% endif %} for "{{ query }}"
+    </div>
+
+    <!-- Decisions Results -->
+    {% if results.decisions %}
+      <div class="card mb-6">
+        <div class="card-header"><div class="card-title">Decisions ({{ results.decisions|length }})</div></div>
+        <div class="card-body p-0">
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <tbody>
+                {% for decision in results.decisions %}
+                  <tr>
+                    <td>
+                      <a href="{{ url_for('decisions.detail', decision_id=decision.id) }}" class="font-semibold text-text">
+                        {{ decision.title }}
+                      </a>
+                      <div class="text-xs text-secondary mt-1">{{ decision.goal or decision.description or 'No description' }}</div>
+                    </td>
+                    <td><span class="badge badge-neutral">{{ decision.category }}</span></td>
+                    <td style="text-align:right">
+                      <a href="{{ url_for('decisions.detail', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">View</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Options Results -->
+    {% if results.options %}
+      <div class="card mb-6">
+        <div class="card-header"><div class="card-title">Options / Alternatives ({{ results.options|length }})</div></div>
+        <div class="card-body p-0">
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <tbody>
+                {% for option in results.options %}
+                  <tr>
+                    <td>
+                      <div class="font-semibold text-text">{{ option.name }}</div>
+                      <div class="text-xs text-secondary mt-1">Decision: {{ option.decision.title }}</div>
+                    </td>
+                    <td>{{ option.formatted_price or '—' }}</td>
+                    <td style="text-align:right">
+                      <a href="{{ url_for('decisions.detail', decision_id=option.decision_id) }}" class="btn btn-secondary btn-sm">View Decision</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Criteria Results -->
+    {% if results.criteria %}
+      <div class="card mb-6">
+        <div class="card-header"><div class="card-title">Criteria ({{ results.criteria|length }})</div></div>
+        <div class="card-body p-0">
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <tbody>
+                {% for criterion in results.criteria %}
+                  <tr>
+                    <td>
+                      <div class="font-semibold text-text">{{ criterion.name }}</div>
+                      <div class="text-xs text-secondary mt-1">Decision: {{ criterion.decision.title }}</div>
+                    </td>
+                    <td><span class="weight-pill">Weight: {{ criterion.weight|round(1) }}</span></td>
+                    <td style="text-align:right">
+                      <a href="{{ url_for('decisions.criteria_builder', decision_id=criterion.decision_id) }}" class="btn btn-secondary btn-sm">Manage Criteria</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Journal Results -->
+    {% if results.journal_entries %}
+      <div class="card mb-6">
+        <div class="card-header"><div class="card-title">Journal Entries ({{ results.journal_entries|length }})</div></div>
+        <div class="card-body p-0">
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <tbody>
+                {% for entry in results.journal_entries %}
+                  <tr>
+                    <td>
+                      <div class="font-semibold text-text">{{ entry.decision.title }}</div>
+                      <div class="text-xs text-secondary mt-1">{{ entry.outcome|truncate_smart(120) }}</div>
+                    </td>
+                    <td style="text-align:right">
+                      <a href="{{ url_for('journal.detail', entry_id=entry.id) }}" class="btn btn-secondary btn-sm">Read Entry</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="card p-12">
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+        <div class="empty-state-title">No results found for "{{ query }}"</div>
+        <div class="empty-state-text">Check your spelling or try searching for another term.</div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Export Center{% endblock %}
+
+{% block breadcrumb %}
+<span>Workspace</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Reports</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-6">
+  <h1 class="page-title">Reports & Export Center</h1>
+  <p class="page-subtitle">Export your decision matrix evaluations, trade-off analyses, and scores in PDF or Excel formats.</p>
+</div>
+
+{% if decisions %}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Available Decision Reports</div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-wrapper" style="border:none;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Decision Title</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Criteria / Options</th>
+              <th style="text-align:right">Export Formats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for decision in decisions %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('decisions.detail', decision_id=decision.id) }}" class="font-semibold text-text">
+                    {{ decision.title }}
+                  </a>
+                </td>
+                <td><span class="badge badge-neutral">{{ decision.category }}</span></td>
+                <td>
+                  <span class="badge badge-{{ 'success' if decision.status == 'completed' else ('primary' if decision.status == 'active' else 'neutral') }}">
+                    {{ decision.status_label }}
+                  </span>
+                </td>
+                <td>
+                  <span class="text-xs text-secondary">
+                    {{ decision.criteria_count }} criteria, {{ decision.options_count }} options
+                  </span>
+                </td>
+                <td style="text-align:right">
+                  <div class="flex justify-end gap-2">
+                    <a href="{{ url_for('reports.download_pdf', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">
+                      <i class="bi bi-file-earmark-pdf text-danger"></i> PDF
+                    </a>
+                    <a href="{{ url_for('reports.download_excel', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">
+                      <i class="bi bi-file-earmark-excel text-success"></i> Excel
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="card p-12">
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div>
+      <div class="empty-state-title">No reports available</div>
+      <div class="empty-state-text">Create decisions to generate downloadable summary reports.</div>
+      <a href="{{ url_for('decisions.new_decision') }}" class="btn btn-primary btn-sm">Create Decision</a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

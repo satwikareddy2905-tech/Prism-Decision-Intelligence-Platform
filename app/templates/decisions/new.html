@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}New Decision{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('decisions.index') }}">Decisions</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">New Decision</span>
+{% endblock %}
+
+{% block content %}
+<!-- Stepper -->
+<div class="stepper">
+  <div class="stepper-step active">
+    <div class="stepper-number">1</div>
+    <span>Basic Details</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step">
+    <div class="stepper-number">2</div>
+    <span>Define Criteria</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step">
+    <div class="stepper-number">3</div>
+    <span>Add Options</span>
+  </div>
+  <div class="stepper-line"></div>
+  <div class="stepper-step">
+    <div class="stepper-number">4</div>
+    <span>Evaluate & Score</span>
+  </div>
+</div>
+
+<div class="card max-w-2xl mx-auto" style="max-width: 640px; margin: 0 auto;">
+  <div class="card-header">
+    <div class="card-title">Step 1: Decision Details</div>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('decisions.new_decision') }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="title">Decision Title <span class="required">*</span></label>
+        {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), id="title", placeholder="e.g., Select New Laptop for Work, Choose College Program", autofocus=true) }}
+        {% for error in form.title.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+        <div class="form-hint">Give your decision a clear, actionable title.</div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label" for="category">Category <span class="required">*</span></label>
+          {{ form.category(class="form-select" + (" is-invalid" if form.category.errors else ""), id="category") }}
+          {% for error in form.category.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="deadline">Target Deadline</label>
+          {{ form.deadline(class="form-control" + (" is-invalid" if form.deadline.errors else ""), id="deadline", type="date") }}
+          {% for error in form.deadline.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="goal">Primary Goal</label>
+        {{ form.goal(class="form-control" + (" is-invalid" if form.goal.errors else ""), id="goal", placeholder="e.g., Find the highest performance laptop under $2,000 for video editing") }}
+        {% for error in form.goal.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+        <div class="form-hint">What primary objective should guide this decision?</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">Additional Context / Description</label>
+        {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), id="description", rows="3", placeholder="Add any background notes, constraints, or context...") }}
+        {% for error in form.description.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="privacy">Privacy</label>
+        {{ form.privacy(class="form-select" + (" is-invalid" if form.privacy.errors else ""), id="privacy") }}
+        {% for error in form.privacy.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="flex justify-between items-center mt-6 pt-4 border-top">
+        <a href="{{ url_for('decisions.index') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          Save & Next: Add Criteria <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

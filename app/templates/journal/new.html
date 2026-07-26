@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Journal Entry — {{ decision.title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('journal.index') }}">Journal</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">New Entry</span>
+{% endblock %}
+
+{% block content %}
+<div class="card max-w-2xl mx-auto" style="max-width: 640px; margin: 0 auto;">
+  <div class="card-header">
+    <div>
+      <span class="badge badge-neutral text-xs mb-1">{{ decision.category }}</span>
+      <div class="card-title">Record Journal Entry for "{{ decision.title }}"</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('journal.new_entry', decision_id=decision.id) }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        <label class="form-label" for="outcome">Actual Outcome <span class="required">*</span></label>
+        {{ form.outcome(class="form-control" + (" is-invalid" if form.outcome.errors else ""), id="outcome", rows="3", placeholder="What actually happened after selecting this option?", autofocus=true) }}
+        {% for error in form.outcome.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="reflection">Personal Reflection</label>
+        {{ form.reflection(class="form-control" + (" is-invalid" if form.reflection.errors else ""), id="reflection", rows="3", placeholder="Are you satisfied with the result? How did the process feel?") }}
+        {% for error in form.reflection.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lessons_learned">Lessons Learned</label>
+        {{ form.lessons_learned(class="form-control" + (" is-invalid" if form.lessons_learned.errors else ""), id="lessons_learned", rows="3", placeholder="What insights will guide your future decisions?") }}
+        {% for error in form.lessons_learned.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div class="form-group">
+          <label class="form-label" for="satisfaction_score">Satisfaction Rating (1 – 10)</label>
+          {{ form.satisfaction_score(class="form-control" + (" is-invalid" if form.satisfaction_score.errors else ""), id="satisfaction_score", type="number", min="1", max="10") }}
+          {% for error in form.satisfaction_score.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group flex items-center mt-6">
+          <label class="form-check">
+            {{ form.would_choose_again(class="form-check-input") }}
+            <span class="form-check-label font-medium">I would choose this option again</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mt-6 pt-4 border-top">
+        <a href="{{ url_for('decisions.detail', decision_id=decision.id) }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Journal Entry</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

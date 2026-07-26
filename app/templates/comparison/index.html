@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Comparison Engine — {{ decision.title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('decisions.index') }}">Decisions</a>
+<span class="separator">/</span>
+<a href="{{ url_for('decisions.detail', decision_id=decision.id) }}">{{ decision.title }}</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">Comparison Engine</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.btn-note {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 150ms ease;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-note:hover {
+  color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+.btn-note.has-note {
+  color: var(--color-primary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-start flex-wrap gap-4 mb-6">
+  <div>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="badge badge-primary">Heart of Prism</span>
+      <span class="badge badge-neutral"><i class="bi {{ decision.category_icon }}"></i> {{ decision.category }}</span>
+    </div>
+    <h1 class="page-title">Comparison Engine</h1>
+    <p class="page-subtitle">Score options against weighted criteria to receive real-time calculated rankings and trade-off analysis.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-sliders"></i> Criteria ({{ decision.criteria_count }})
+    </a>
+    <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-grid-3x3-gap"></i> Options ({{ decision.options_count }})
+    </a>
+  </div>
+</div>
+
+{% if not results or decision.options_count < 2 or decision.criteria_count < 1 %}
+  <div class="card p-12">
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-bar-chart-steps"></i></div>
+      <div class="empty-state-title">Insufficient Data to Compare</div>
+      <div class="empty-state-text">
+        You need at least 1 criterion and 2 options to build a comparison matrix.
+      </div>
+      <div class="flex gap-3">
+        <a href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}" class="btn btn-primary btn-sm">Configure Criteria</a>
+        <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">Configure Options</a>
+      </div>
+    </div>
+  </div>
+{% else %}
+
+  <!-- AI Comparison Insights & Recommendations -->
+  {% if ai_analysis %}
+    <div class="card mb-8">
+      <div class="card-header bg-surface-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="bi bi-cpu-fill text-primary"></i>
+          <span class="card-title">Intelligent Analysis & Insights</span>
+        </div>
+        <span class="badge badge-info">Calculated Prose</span>
+      </div>
+      <div class="card-body">
+        <p class="text-base text-text font-medium leading-relaxed mb-6">
+          {{ ai_analysis.summary }}
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+          <!-- Top Recommendation -->
+          <div class="card-inset border-left-primary" style="border-left: 3px solid var(--color-primary);">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-primary uppercase">Rank #1 — Recommended Choice</span>
+              <span class="badge badge-success font-bold">{{ ai_analysis.recommendation.score }}%</span>
+            </div>
+            <h4 class="text-base font-semibold text-text mb-3">{{ ai_analysis.recommendation.option.name }}</h4>
+
+            {% if ai_analysis.recommendation.strengths %}
+              <div class="mb-2">
+                <div class="text-xs font-semibold text-success mb-1"><i class="bi bi-plus-circle"></i> Key Strengths:</div>
+                <div class="flex flex-wrap gap-1">
+                  {% for s in ai_analysis.recommendation.strengths %}
+                    <span class="badge badge-success text-xs">{{ s }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if ai_analysis.recommendation.weaknesses %}
+              <div>
+                <div class="text-xs font-semibold text-danger mb-1"><i class="bi bi-dash-circle"></i> Minor Trade-offs:</div>
+                <div class="flex flex-wrap gap-1">
+                  {% for w in ai_analysis.recommendation.weaknesses %}
+                    <span class="badge badge-warning text-xs">{{ w }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Runner Up -->
+          <div class="card-inset">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-secondary uppercase">Rank #2 — Alternative Choice</span>
+              <span class="badge badge-neutral font-bold">{{ ai_analysis.runner_up.score }}%</span>
+            </div>
+            <h4 class="text-base font-semibold text-text mb-3">{{ ai_analysis.runner_up.option.name }}</h4>
+
+            {% if ai_analysis.runner_up.strengths %}
+              <div class="mb-2">
+                <div class="text-xs font-semibold text-success mb-1"><i class="bi bi-plus-circle"></i> Key Strengths:</div>
+                <div class="flex flex-wrap gap-1">
+                  {% for s in ai_analysis.runner_up.strengths %}
+                    <span class="badge badge-neutral text-xs">{{ s }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if ai_analysis.trade_offs.runner_leads %}
+              <div>
+                <div class="text-xs font-semibold text-primary mb-1"><i class="bi bi-lightning-charge"></i> Leads Rank #1 in:</div>
+                <div class="flex flex-wrap gap-1">
+                  {% for t in ai_analysis.trade_offs.runner_leads %}
+                    <span class="badge badge-info text-xs">{{ t.criterion }} (+{{ t.diff }})</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Scoring Matrix Table -->
+  <div class="card mb-8">
+    <div class="card-header flex justify-between items-center">
+      <div>
+        <div class="card-title">Scoring Matrix (1 – 10 Scale)</div>
+        <div class="text-xs text-secondary mt-1">Directly edit scores below to recalculate rankings in real-time.</div>
+      </div>
+      <div class="flex gap-2">
+        <button id="reorder-btn" class="btn btn-secondary btn-sm" style="display:none;" onclick="window.location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Reorder & Update Insights
+        </button>
+        <button id="save-matrix-btn" class="btn btn-primary btn-sm" onclick="saveAllScores()">
+          <i class="bi bi-check2-circle"></i> Save All Scores
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-wrapper" style="border:none;">
+        <table class="comparison-table" id="matrix-table">
+          <thead>
+            <tr>
+              <th class="criterion-col">Criterion & Weight</th>
+              {% for res in results.results %}
+                <th>
+                  <div class="flex items-center justify-center gap-2 mb-1">
+                    <span class="rank-badge rank-{{ res.rank }}" id="rank-badge-{{ res.option.id }}">{{ res.rank }}</span>
+                    <span class="font-semibold text-text">{{ res.option.name }}</span>
+                  </div>
+                  <div class="text-xs font-bold text-primary" id="score-header-{{ res.option.id }}">
+                    {{ res.normalized_score }}%
+                  </div>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for criterion in results.criteria %}
+              <tr>
+                <td class="criterion-col">
+                  <div class="font-medium text-text">{{ criterion.name }}</div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="weight-pill">w: {{ criterion.weight|round(1) }}</span>
+                    {% if criterion.is_mandatory %}
+                      <span class="badge badge-danger">Mandatory</span>
+                    {% endif %}
+                  </div>
+                </td>
+
+                {% for res in results.results %}
+                  {% set current_score = matrix.get(res.option.id, {}).get(criterion.id, 5.0) %}
+                  {% set score_obj = results.score_map.get((criterion.id, res.option.id)) %}
+                  {% set note = score_obj.notes if score_obj else '' %}
+                  <td class="matrix-cell" data-option-id="{{ res.option.id }}" data-criterion-id="{{ criterion.id }}">
+                    <div class="flex items-center justify-center gap-1">
+                      <input type="number"
+                             class="score-input"
+                             min="1" max="10" step="0.5"
+                             value="{{ current_score }}"
+                             onchange="updateScoreLocally({{ decision.id }}, {{ criterion.id }}, {{ res.option.id }}, this.value)">
+                      <button class="btn-note {% if note %}has-note{% endif %}"
+                              onclick="openScoreNoteModal({{ criterion.id }}, {{ res.option.id }}, '{{ criterion.name|escape }}', '{{ res.option.name|escape }}', this)"
+                              title="Justification note"
+                              data-note="{{ note or '' }}">
+                        <i class="bi {% if note %}bi-chat-left-text-fill{% else %}bi-chat-left{% endif %}"></i>
+                      </button>
+                    </div>
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+
+            <!-- Summary Totals Row -->
+            <tr class="total-row">
+              <td class="criterion-col font-bold text-text">Overall Calculated Score</td>
+              {% for res in results.results %}
+                <td>
+                  <div class="font-bold text-base text-primary" id="total-score-{{ res.option.id }}">
+                    {{ res.normalized_score }}%
+                  </div>
+                  {% if res.has_disqualifier %}
+                    <span class="badge badge-danger text-xs mt-1" title="Fails mandatory requirement">⚠ Non-compliant</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <!-- Modal: Edit Score Note -->
+  <div class="modal fade" id="scoreNoteModal" tabindex="-1" aria-labelledby="scoreNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="background: var(--color-surface); border: 1px solid var(--color-border);">
+        <form id="score-note-form">
+          <input type="hidden" id="note-criterion-id">
+          <input type="hidden" id="note-option-id">
+          <div class="modal-header">
+            <h5 class="modal-title font-semibold" id="scoreNoteModalLabel">Score Justification / Note</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3 text-xs text-secondary">
+              Provide details or justification for scoring <span id="note-option-name" class="font-semibold text-text"></span> against <span id="note-criterion-name" class="font-semibold text-text"></span>.
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="score-note-text">Justification Note</label>
+              <textarea id="score-note-text" class="form-control" rows="3" placeholder="e.g., Performance is unmatched due to the M3 Max chip."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm">Save Note</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DECISION_ID = {{ decision.id }};
+let scoreNoteModalObj = null;
+let activeNoteButton = null;
+let initialRanks = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+  scoreNoteModalObj = new bootstrap.Modal(document.getElementById('scoreNoteModal'));
+  
+  // Store initial ranks
+  document.querySelectorAll('[id^="rank-badge-"]').forEach(el => {
+    const optId = el.id.replace('rank-badge-', '');
+    initialRanks[optId] = parseInt(el.textContent.trim());
+  });
+
+  document.getElementById('score-note-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const criterionId = document.getElementById('note-criterion-id').value;
+    const optionId = document.getElementById('note-option-id').value;
+    const notes = document.getElementById('score-note-text').value.trim();
+    
+    const cell = document.querySelector(`.matrix-cell[data-criterion-id="${criterionId}"][data-option-id="${optionId}"]`);
+    const scoreVal = cell ? cell.querySelector('.score-input').value : 5.0;
+
+    try {
+      const res = await apiFetch(`/api/decisions/${DECISION_ID}/scores`, {
+        method: 'POST',
+        body: JSON.stringify({
+          criterion_id: parseInt(criterionId),
+          option_id: parseInt(optionId),
+          raw_score: parseFloat(scoreVal),
+          notes: notes
+        })
+      });
+
+      Toast.success('Note saved');
+      if (activeNoteButton) {
+        activeNoteButton.dataset.note = notes;
+        const icon = activeNoteButton.querySelector('i');
+        if (notes) {
+          activeNoteButton.classList.add('has-note');
+          if (icon) icon.className = 'bi bi-chat-left-text-fill';
+        } else {
+          activeNoteButton.classList.remove('has-note');
+          if (icon) icon.className = 'bi bi-chat-left';
+        }
+      }
+      
+      // Update ranks dynamically if changed
+      updateRanksUI(res.results);
+      
+      scoreNoteModalObj.hide();
+    } catch (err) {
+      Toast.error('Failed to save note', err.message);
+    }
+  });
+});
+
+function openScoreNoteModal(criterionId, optionId, criterionName, optionName, btn) {
+  activeNoteButton = btn;
+  document.getElementById('note-criterion-id').value = criterionId;
+  document.getElementById('note-option-id').value = optionId;
+  document.getElementById('note-criterion-name').textContent = criterionName;
+  document.getElementById('note-option-name').textContent = optionName;
+  document.getElementById('score-note-text').value = btn.dataset.note || '';
+  scoreNoteModalObj.show();
+}
+
+function updateRanksUI(resultsPayload) {
+  let ranksChanged = false;
+  if (resultsPayload && resultsPayload.results) {
+    resultsPayload.results.forEach(item => {
+      const headerEl = document.getElementById(`score-header-${item.option_id}`);
+      const totalEl = document.getElementById(`total-score-${item.option_id}`);
+      const badgeEl = document.getElementById(`rank-badge-${item.option_id}`);
+      if (headerEl) headerEl.textContent = `${item.normalized_score}%`;
+      if (totalEl) totalEl.textContent = `${item.normalized_score}%`;
+      if (badgeEl) {
+        badgeEl.textContent = item.rank;
+        badgeEl.className = `rank-badge rank-${item.rank}`;
+        if (initialRanks[item.option_id] !== item.rank) {
+          ranksChanged = true;
+        }
+      }
+    });
+  }
+  if (ranksChanged) {
+    const reorderBtn = document.getElementById('reorder-btn');
+    if (reorderBtn) reorderBtn.style.display = 'inline-flex';
+  }
+}
+
+async function updateScoreLocally(decisionId, criterionId, optionId, scoreVal) {
+  try {
+    const res = await apiFetch(`/api/decisions/${decisionId}/scores`, {
+      method: 'POST',
+      body: JSON.stringify({
+        criterion_id: criterionId,
+        option_id: optionId,
+        raw_score: parseFloat(scoreVal)
+      })
+    });
+
+    updateRanksUI(res.results);
+    Toast.success('Score updated');
+  } catch (err) {
+    Toast.error('Score update failed', err.message);
+  }
+}
+
+async function saveAllScores() {
+  const inputs = document.querySelectorAll('.score-input');
+  const scores = [];
+  inputs.forEach(inp => {
+    const cell = inp.closest('.matrix-cell');
+    if (cell) {
+      scores.push({
+        criterion_id: parseInt(cell.dataset.criterionId),
+        option_id: parseInt(cell.dataset.optionId),
+        raw_score: parseFloat(inp.value)
+      });
+    }
+  });
+
+  try {
+    await apiFetch(`/api/decisions/${DECISION_ID}/scores/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ scores: scores })
+    });
+    Toast.success('All scores saved successfully');
+    window.location.reload();
+  } catch (err) {
+    Toast.error('Failed to save scores', err.message);
+  }
+}
+</script>
+{% endblock %}

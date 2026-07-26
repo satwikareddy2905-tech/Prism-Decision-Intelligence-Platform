@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — Prism</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <script>
+    (function(){
+      var d=localStorage.getItem('prism-dark');
+      if(d==='1') document.documentElement.setAttribute('data-theme','dark');
+    })();
+  </script>
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-panel">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="auth-logo-text">Prism</span>
+      </div>
+
+      <h1 class="auth-heading">Create your account</h1>
+      <p class="auth-subheading">Start making smarter, structured decisions today</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="toast toast-{{ 'danger' if category == 'error' or category == 'danger' else category }}" style="margin-bottom: 1rem; width: 100%; max-width: 100%;">
+            <div class="toast-body">
+              <div class="toast-title">{{ message }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.signup') }}" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), id="full_name", placeholder="Alex Morgan", autofocus=true) }}
+          {% for error in form.full_name.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), id="username", placeholder="alexmorgan") }}
+          {% for error in form.username.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email address</label>
+          {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="email", placeholder="name@company.com") }}
+          {% for error in form.email.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="At least 8 characters") }}
+          {% for error in form.password.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password</label>
+          {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else ""), id="confirm_password", placeholder="Re-enter password") }}
+          {% for error in form.confirm_password.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full btn-lg mt-2">
+          Create Account
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="{{ url_for('auth.login') }}" class="font-medium">Sign in</a>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

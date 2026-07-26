@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Decisions{% endblock %}
+
+{% block breadcrumb %}
+<span>Workspace</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Decisions</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center flex-wrap gap-4">
+  <div>
+    <h1 class="page-title">Decisions</h1>
+    <p class="page-subtitle">Manage and track your structured decision evaluation processes.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('decisions.new_decision') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> New Decision
+    </a>
+  </div>
+</div>
+
+<!-- Filter & Search Controls -->
+<div class="card mb-6 p-4">
+  <form method="GET" action="{{ url_for('decisions.index') }}" class="flex items-center gap-4 flex-wrap">
+    <div class="form-group mb-0" style="min-width: 180px;">
+      <select name="status" class="form-select" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for code, label in statuses %}
+          <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group mb-0" style="min-width: 180px;">
+      <select name="category" class="form-select" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for cat_name, cat_count in categories %}
+          <option value="{{ cat_name }}" {% if category_filter == cat_name %}selected{% endif %}>
+            {{ cat_name }} ({{ cat_count }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group mb-0" style="min-width: 180px;">
+      <select name="sort" class="form-select" onchange="this.form.submit()">
+        <option value="updated" {% if sort == 'updated' %}selected{% endif %}>Recently Updated</option>
+        <option value="created" {% if sort == 'created' %}selected{% endif %}>Recently Created</option>
+        <option value="title" {% if sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+      </select>
+    </div>
+
+    {% if status_filter or category_filter or sort != 'updated' %}
+      <a href="{{ url_for('decisions.index') }}" class="btn btn-ghost btn-sm">Reset Filters</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Decisions Grid -->
+{% if decisions %}
+  <div class="decisions-grid">
+    {% for decision in decisions %}
+      <div class="decision-card {% if decision.pinned %}decision-card-pinned{% endif %}" onclick="window.location.href='{{ url_for('decisions.detail', decision_id=decision.id) }}'">
+        <div class="flex justify-between items-center">
+          <span class="decision-card-category">
+            <i class="bi {{ decision.category_icon }}"></i> {{ decision.category }}
+          </span>
+          <div class="flex items-center gap-1" onclick="event.stopPropagation();">
+            <form action="{{ url_for('decisions.toggle_pin', decision_id=decision.id) }}" method="POST" style="margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-ghost btn-icon-sm" title="{{ 'Unpin' if decision.pinned else 'Pin' }}">
+                <i class="bi {{ 'bi-pin-fill text-primary' if decision.pinned else 'bi-pin text-muted' }}"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="decision-card-title">{{ decision.title }}</div>
+
+        {% if decision.goal %}
+          <div class="text-xs text-secondary truncate">{{ decision.goal }}</div>
+        {% endif %}
+
+        <div class="decision-card-meta">
+          <span><i class="bi bi-list-check"></i> {{ decision.criteria_count }} criteria</span>
+          <span><i class="bi bi-grid-3x3-gap"></i> {{ decision.options_count }} options</span>
+          <span class="badge badge-{{ 'success' if decision.status == 'completed' else ('primary' if decision.status == 'active' else 'neutral') }}" style="margin-left:auto">
+            {{ decision.status_label }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card p-12">
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-folder2-open"></i></div>
+      <div class="empty-state-title">No decisions found</div>
+      <div class="empty-state-text">
+        {% if status_filter or category_filter %}
+          No decisions match your current filters. Try resetting the filters or create a new decision.
+        {% else %}
+          You haven't created any decisions yet. Start by defining your first decision project.
+        {% endif %}
+      </div>
+      <a href="{{ url_for('decisions.new_decision') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Create Decision
+      </a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

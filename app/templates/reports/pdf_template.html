@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Helvetica, Arial, sans-serif; color: #18181B; font-size: 11px; margin: 20px; }
+    h1 { font-size: 18px; color: #2563EB; margin-bottom: 4px; }
+    .meta { font-size: 10px; color: #52525B; margin-bottom: 20px; border-bottom: 1px solid #E4E4E7; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th { background-color: #2563EB; color: #ffffff; padding: 6px; text-align: left; font-size: 10px; }
+    td { border-bottom: 1px solid #E4E4E7; padding: 6px; font-size: 10px; }
+    .bold { font-weight: bold; }
+    .text-center { text-align: center; }
+    .score { font-weight: bold; color: #2563EB; }
+  </style>
+</head>
+<body>
+  <h1>PRISM DECISION REPORT</h1>
+  <div class="meta">
+    <strong>Title:</strong> {{ decision.title }} |
+    <strong>Category:</strong> {{ decision.category }} |
+    <strong>Status:</strong> {{ decision.status_label }}
+  </div>
+
+  {% if decision.goal %}
+    <p><strong>Goal:</strong> {{ decision.goal }}</p>
+  {% endif %}
+
+  {% if results and results.results %}
+    <h3>Calculated Matrix & Rankings</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Criterion (Weight)</th>
+          {% for r in results.results %}
+            <th class="text-center">#{{ r.rank }} {{ r.option.name }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in results.criteria %}
+          <tr>
+            <td>{{ c.name }} (w: {{ c.weight|round(1) }})</td>
+            {% for r in results.results %}
+              {% set score_obj = results.score_map.get((c.id, r.option.id)) %}
+              <td class="text-center">{{ score_obj.raw_score if score_obj else '—' }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        <tr style="background-color: #F4F4F5;">
+          <td class="bold">Overall Score (%)</td>
+          {% for r in results.results %}
+            <td class="text-center score">{{ r.normalized_score }}%</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  {% endif %}
+</body>
+</html>

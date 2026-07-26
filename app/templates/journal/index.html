@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Decision Journal{% endblock %}
+
+{% block breadcrumb %}
+<span>Workspace</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Decision Journal</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center flex-wrap gap-4">
+  <div>
+    <h1 class="page-title">Decision Journal</h1>
+    <p class="page-subtitle">Track outcomes, post-decision reflections, and personal lessons learned over time.</p>
+  </div>
+</div>
+
+{% if unwritten %}
+  <!-- Prompt for unwritten completed decisions -->
+  <div class="card mb-8 p-4 border-left-primary" style="border-left: 3px solid var(--color-primary); background: var(--color-primary-light);">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <span class="font-semibold text-text text-sm">Completed decisions awaiting reflection ({{ unwritten|length }})</span>
+        <div class="text-xs text-secondary mt-1">Record actual outcomes while memories are fresh.</div>
+      </div>
+      <div class="flex gap-2">
+        {% for d in unwritten[:2] %}
+          <a href="{{ url_for('journal.new_entry', decision_id=d.id) }}" class="btn btn-primary btn-sm">
+            Reflect on "{{ d.title }}"
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if entries %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+    {% for entry in entries %}
+      <div class="card card-inset" onclick="window.location.href='{{ url_for('journal.detail', entry_id=entry.id) }}'" style="cursor: pointer;">
+        <div class="flex justify-between items-start mb-3">
+          <div>
+            <span class="badge badge-neutral text-xs mb-1">
+              <i class="bi {{ entry.decision.category_icon }}"></i> {{ entry.decision.category }}
+            </span>
+            <h3 class="text-base font-semibold text-text">{{ entry.decision.title }}</h3>
+          </div>
+          {% if entry.satisfaction_score %}
+            <div class="score-cell {{ entry.satisfaction_score|score_class }}">
+              {{ entry.satisfaction_score }}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="text-xs text-secondary mb-4 line-clamp-3">
+          <strong>Outcome:</strong> {{ entry.outcome|truncate_smart(140) }}
+        </div>
+
+        <div class="flex justify-between items-center pt-3 border-top text-xs text-muted">
+          <span>Recorded {{ entry.created_at|dateformat }}</span>
+          {% if entry.would_choose_again is not none %}
+            <span class="{{ 'text-success' if entry.would_choose_again else 'text-danger' }}">
+              <i class="bi {{ 'bi-hand-thumbs-up' if entry.would_choose_again else 'bi-hand-thumbs-down' }}"></i>
+              {{ 'Would choose again' if entry.would_choose_again else 'Would choose differently' }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card p-12">
+    <div class="empty-state">
+      <div class="empty-state-icon"><i class="bi bi-journal-text"></i></div>
+      <div class="empty-state-title">No journal entries yet</div>
+      <div class="empty-state-text">
+        Once you complete a decision evaluation, write a journal reflection to analyze real-world results.
+      </div>
+      <a href="{{ url_for('decisions.index', status='completed') }}" class="btn btn-primary">
+        View Completed Decisions
+      </a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

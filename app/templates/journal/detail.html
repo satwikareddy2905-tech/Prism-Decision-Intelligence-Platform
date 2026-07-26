@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Journal Entry — {{ entry.decision.title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('journal.index') }}">Journal</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">{{ entry.decision.title }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center mb-6">
+  <div>
+    <span class="badge badge-neutral text-xs mb-1">{{ entry.decision.category }}</span>
+    <h1 class="page-title">{{ entry.decision.title }}</h1>
+    <p class="page-subtitle">Recorded on {{ entry.created_at|dateformat }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('journal.edit_entry', entry_id=entry.id) }}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-pencil"></i> Edit Entry
+    </a>
+    <a href="{{ url_for('decisions.detail', decision_id=entry.decision_id) }}" class="btn btn-primary btn-sm">
+      View Decision Workspace
+    </a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+  <div style="grid-column: span 2;">
+    <!-- Actual Outcome -->
+    <div class="card mb-6">
+      <div class="card-header"><div class="card-title">Actual Outcome</div></div>
+      <div class="card-body">
+        <p class="text-base text-text leading-relaxed">{{ entry.outcome }}</p>
+      </div>
+    </div>
+
+    <!-- Reflection -->
+    {% if entry.reflection %}
+      <div class="card mb-6">
+        <div class="card-header"><div class="card-title">Personal Reflection</div></div>
+        <div class="card-body">
+          <p class="text-base text-text leading-relaxed">{{ entry.reflection }}</p>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Lessons Learned -->
+    {% if entry.lessons_learned %}
+      <div class="card">
+        <div class="card-header"><div class="card-title">Lessons Learned</div></div>
+        <div class="card-body">
+          <p class="text-base text-text leading-relaxed">{{ entry.lessons_learned }}</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Post-Decision Ratings</div></div>
+      <div class="card-body space-y-4">
+        <div class="stat-box p-4 mb-4">
+          <div class="stat-label">Satisfaction Score</div>
+          <div class="stat-value text-primary" style="font-size: 2rem;">
+            {{ entry.satisfaction_score or '—' }} <span class="text-xs text-muted">/ 10</span>
+          </div>
+          <div class="stat-sub font-semibold">{{ entry.satisfaction_label }}</div>
+        </div>
+
+        <div class="p-3 card-inset text-xs">
+          <div class="stat-label">Would Choose Again?</div>
+          <div class="font-bold text-sm mt-1 {{ 'text-success' if entry.would_choose_again else 'text-danger' }}">
+            <i class="bi {{ 'bi-check-circle-fill' if entry.would_choose_again else 'bi-x-circle-fill' }}"></i>
+            {{ 'Yes, exact same choice' if entry.would_choose_again else 'No, would choose differently' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

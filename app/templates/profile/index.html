@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block breadcrumb %}
+<span>Account</span>
+<span class="separator">/</span>
+<span class="font-medium text-text">Profile</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center flex-wrap gap-4 mb-6">
+  <div>
+    <h1 class="page-title">Profile</h1>
+    <p class="page-subtitle">Your personal account details and platform activity summary.</p>
+  </div>
+  <div>
+    <a href="{{ url_for('profile.settings') }}" class="btn btn-secondary">
+      <i class="bi bi-gear"></i> Account Settings
+    </a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+  <div>
+    <div class="card p-6 text-center">
+      <div class="sidebar-avatar mx-auto mb-4" style="width: 64px; height: 64px; font-size: 1.5rem;">
+        {{ current_user.initials }}
+      </div>
+      <h2 class="text-lg font-semibold text-text mb-1">{{ current_user.display_name }}</h2>
+      <div class="text-xs text-secondary mb-4">@{{ current_user.username }} • {{ current_user.email }}</div>
+
+      <div class="stat-box p-3 mb-4 text-left">
+        <div class="stat-label">Member Since</div>
+        <div class="font-semibold text-sm text-text">{{ current_user.created_at|dateformat }}</div>
+      </div>
+
+      <a href="{{ url_for('profile.settings') }}" class="btn btn-secondary btn-sm w-full">Edit Profile</a>
+    </div>
+  </div>
+
+  <div style="grid-column: span 2;">
+    <!-- Usage Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+      <div class="stat-box">
+        <div class="stat-label">Total Decisions</div>
+        <div class="stat-value text-primary">{{ total_decisions }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Finalized Choices</div>
+        <div class="stat-value text-success">{{ completed_decisions }}</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Journal Entries</div>
+        <div class="stat-value text-secondary">{{ journal_count }}</div>
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recent Activity</div></div>
+      <div class="card-body">
+        {% if activities %}
+          <div class="timeline">
+            {% for log in activities %}
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-primary"></div>
+                <div class="timeline-content">
+                  <span class="font-medium">{{ log.action_label }}</span>
+                  {% if log.description %}<span class="text-secondary">— {{ log.description }}</span>{% endif %}
+                  <div class="timeline-time">{{ log.time_ago }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state py-4"><div class="empty-state-text">No recent activity.</div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

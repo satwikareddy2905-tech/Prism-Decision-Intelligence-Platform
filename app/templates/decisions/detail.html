@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}{{ decision.title }}{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('decisions.index') }}">Decisions</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">{{ decision.title }}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Decision Workspace Header -->
+<div class="page-header flex justify-between items-start flex-wrap gap-4 mb-6">
+  <div>
+    <div class="flex items-center gap-3 mb-2">
+      <span class="badge badge-neutral">
+        <i class="bi {{ decision.category_icon }}"></i> {{ decision.category }}
+      </span>
+      <span class="badge badge-{{ 'success' if decision.status == 'completed' else ('primary' if decision.status == 'active' else 'neutral') }}">
+        {{ decision.status_label }}
+      </span>
+      {% if decision.pinned %}
+        <span class="badge badge-primary"><i class="bi bi-pin-fill"></i> Pinned</span>
+      {% endif %}
+    </div>
+    <h1 class="page-title">{{ decision.title }}</h1>
+    {% if decision.goal %}
+      <p class="page-subtitle mt-1"><strong>Goal:</strong> {{ decision.goal }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Workspace Action buttons -->
+  <div class="flex items-center gap-2 flex-wrap">
+    <a href="{{ url_for('comparison.compare_view', decision_id=decision.id) }}" class="btn btn-primary">
+      <i class="bi bi-calculator"></i> Comparison Matrix
+    </a>
+
+    <div class="dropdown">
+      <button class="btn btn-secondary" type="button" id="workspaceActionsBtn" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-three-dots"></i> Actions
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-md border" aria-labelledby="workspaceActionsBtn" style="border-radius: var(--radius-md);">
+        <li>
+          <a class="dropdown-item text-xs" href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}">
+            <i class="bi bi-sliders me-2"></i> Edit Criteria
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item text-xs" href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}">
+            <i class="bi bi-grid-3x3-gap me-2"></i> Edit Options
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item text-xs" href="{{ url_for('decisions.edit_decision', decision_id=decision.id) }}">
+            <i class="bi bi-pencil me-2"></i> Edit Details
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form action="{{ url_for('decisions.toggle_pin', decision_id=decision.id) }}" method="POST" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="dropdown-item text-xs">
+              <i class="bi bi-pin me-2"></i> {{ 'Unpin Decision' if decision.pinned else 'Pin to Dashboard' }}
+            </button>
+          </form>
+        </li>
+        <li>
+          <form action="{{ url_for('decisions.duplicate', decision_id=decision.id) }}" method="POST" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="dropdown-item text-xs">
+              <i class="bi bi-copy me-2"></i> Duplicate Decision
+            </button>
+          </form>
+        </li>
+        {% if decision.status != 'completed' %}
+          <li>
+            <a class="dropdown-item text-xs text-success" href="#" data-bs-toggle="modal" data-bs-target="#completeModal">
+              <i class="bi bi-check-circle me-2"></i> Mark Completed
+            </a>
+          </li>
+        {% endif %}
+        {% if decision.status != 'archived' %}
+          <li>
+            <form action="{{ url_for('decisions.archive', decision_id=decision.id) }}" method="POST" style="margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item text-xs text-warning">
+                <i class="bi bi-archive me-2"></i> Archive Decision
+              </button>
+            </form>
+          </li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form action="{{ url_for('decisions.delete', decision_id=decision.id) }}" method="POST" id="delete-decision-form" style="margin:0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="button" class="dropdown-item text-xs text-danger" data-confirm-delete="Delete this entire decision and all associated scores?" data-target="#delete-decision-form">
+              <i class="bi bi-trash me-2"></i> Delete Decision
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+
+  <!-- Main summary & rankings -->
+  <div style="grid-column: span 2;">
+
+    {% if results and results.recommendation %}
+      <!-- Recommendation Box -->
+      <div class="recommendation-card mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-primary uppercase tracking-wider">Top Recommendation</span>
+          <span class="badge badge-success font-bold text-sm">{{ results.recommendation.normalized_score }}% Score</span>
+        </div>
+        <h3 class="text-lg font-semibold text-text mb-1">{{ results.recommendation.option.name }}</h3>
+        <p class="text-xs text-secondary mb-3">
+          Calculated based on {{ results.criteria|length }} criteria and {{ results.options|length }} options.
+        </p>
+
+        <a href="{{ url_for('comparison.compare_view', decision_id=decision.id) }}" class="btn btn-primary btn-sm">
+          View Detailed Matrix & Insights <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    {% else %}
+      <div class="card mb-6 p-6">
+        <div class="empty-state py-4">
+          <div class="empty-state-icon"><i class="bi bi-calculator"></i></div>
+          <div class="empty-state-title">Evaluation in progress</div>
+          <div class="empty-state-text">
+            Add at least 1 criterion and 2 options to calculate rankings and trade-offs.
+          </div>
+          <div class="flex gap-2">
+            <a href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">Criteria ({{ decision.criteria_count }})</a>
+            <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">Options ({{ decision.options_count }})</a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Options Overview -->
+    <div class="card mb-6">
+      <div class="card-header flex justify-between items-center">
+        <div class="card-title">Evaluated Options ({{ decision.options_count }})</div>
+        <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="text-xs text-primary font-medium">+ Manage Options</a>
+      </div>
+      <div class="card-body p-0">
+        {% if decision.options_count > 0 %}
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Option Name</th>
+                  <th>Price</th>
+                  <th>Notes</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if results and results.results %}
+                  {% for r in results.results %}
+                    <tr>
+                      <td class="font-medium text-text">
+                        {{ r.option.name }}
+                        {% if decision.final_choice_id == r.option.id %}
+                          <span class="badge badge-success ml-2"><i class="bi bi-check-circle-fill"></i> Selected Choice</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ r.option.formatted_price or '—' }}</td>
+                      <td class="text-xs text-secondary truncate" style="max-width: 200px;">{{ r.option.notes or '—' }}</td>
+                      <td>
+                        <span class="score-cell {{ r.normalized_score|score_class }}">
+                          {{ r.normalized_score }}%
+                        </span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  {% for option in decision.options %}
+                    <tr>
+                      <td class="font-medium text-text">{{ option.name }}</td>
+                      <td>{{ option.formatted_price or '—' }}</td>
+                      <td class="text-xs text-secondary truncate" style="max-width: 200px;">{{ option.notes or '—' }}</td>
+                      <td><span class="text-xs text-muted">Not scored</span></td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state py-6">
+            <div class="empty-state-text mb-2">No options added yet.</div>
+            <a href="{{ url_for('decisions.options_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">Add Options</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Criteria Breakdown -->
+    <div class="card">
+      <div class="card-header flex justify-between items-center">
+        <div class="card-title">Evaluation Criteria ({{ decision.criteria_count }})</div>
+        <a href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}" class="text-xs text-primary font-medium">+ Manage Criteria</a>
+      </div>
+      <div class="card-body p-0">
+        {% if decision.criteria_count > 0 %}
+          <div class="table-wrapper" style="border:none;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Criterion</th>
+                  <th>Weight</th>
+                  <th>Priority</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for criterion in decision.criteria %}
+                  <tr>
+                    <td class="font-medium text-text">{{ criterion.name }}</td>
+                    <td><span class="weight-pill">{{ criterion.weight|round(1) }}</span></td>
+                    <td><span class="badge badge-neutral">{{ criterion.priority_label }}</span></td>
+                    <td>
+                      {% if criterion.is_mandatory %}
+                        <span class="badge badge-danger">Mandatory</span>
+                      {% else %}
+                        <span class="badge badge-neutral">Standard</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state py-6">
+            <div class="empty-state-text mb-2">No criteria defined yet.</div>
+            <a href="{{ url_for('decisions.criteria_builder', decision_id=decision.id) }}" class="btn btn-secondary btn-sm">Add Criteria</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sidebar Info & Journal -->
+  <div>
+    <!-- Metadata Card -->
+    <div class="card mb-6">
+      <div class="card-header">
+        <div class="card-title">Decision Details</div>
+      </div>
+      <div class="card-body text-xs space-y-3">
+        <div class="flex justify-between py-1 border-bottom">
+          <span class="text-secondary">Category:</span>
+          <span class="font-medium text-text">{{ decision.category }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-bottom">
+          <span class="text-secondary">Privacy:</span>
+          <span class="font-medium text-text uppercase">{{ decision.privacy }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-bottom">
+          <span class="text-secondary">Target Deadline:</span>
+          <span class="font-medium text-text">{{ decision.deadline|dateformat }}</span>
+        </div>
+        <div class="flex justify-between py-1 border-bottom">
+          <span class="text-secondary">Created:</span>
+          <span class="font-medium text-text">{{ decision.created_at|dateformat }}</span>
+        </div>
+        <div class="flex justify-between py-1">
+          <span class="text-secondary">Last Updated:</span>
+          <span class="font-medium text-text">{{ decision.updated_at|timeago }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journal Status Card -->
+    <div class="card mb-6">
+      <div class="card-header flex justify-between items-center">
+        <div class="card-title">Decision Journal</div>
+      </div>
+      <div class="card-body">
+        {% if decision.journal_entry %}
+          <div class="text-xs text-secondary mb-3">
+            Journal entry recorded on {{ decision.journal_entry.created_at|dateformat }}.
+          </div>
+          <div class="stat-box mb-3 p-3">
+            <div class="stat-label">Satisfaction Rating</div>
+            <div class="stat-value text-primary" style="font-size: 1.25rem;">
+              {{ decision.journal_entry.satisfaction_score or '—' }} / 10
+            </div>
+            <div class="stat-sub">{{ decision.journal_entry.satisfaction_label }}</div>
+          </div>
+          <a href="{{ url_for('journal.detail', entry_id=decision.journal_entry.id) }}" class="btn btn-secondary btn-sm w-full">
+            Read Journal Entry
+          </a>
+        {% else %}
+          <div class="text-xs text-secondary mb-4">
+            Record reflections, lessons learned, and satisfaction after making this decision.
+          </div>
+          <a href="{{ url_for('journal.new_entry', decision_id=decision.id) }}" class="btn btn-secondary btn-sm w-full">
+            <i class="bi bi-journal-plus"></i> Write Journal Entry
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Activity Log</div>
+      </div>
+      <div class="card-body p-4">
+        {% if recent_activity %}
+          <div class="timeline">
+            {% for log in recent_activity %}
+              <div class="timeline-item">
+                <div class="timeline-dot timeline-dot-primary"></div>
+                <div class="timeline-content">
+                  <span class="font-medium">{{ log.action_label }}</span>
+                  <div class="timeline-time">{{ log.time_ago }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-xs text-muted">No activity logged.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Mark Complete -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-labelledby="completeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: var(--color-surface); border: 1px solid var(--color-border);">
+      <form action="{{ url_for('decisions.complete', decision_id=decision.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title font-semibold" id="completeModalLabel">Complete Decision</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-xs text-secondary mb-4">Select the final option chosen and rate your confidence in this decision.</p>
+
+          <div class="form-group mb-4">
+            <label class="form-label">Final Selected Option</label>
+            <select name="final_choice_id" class="form-select">
+              <option value="">-- Select Final Choice --</option>
+              {% for option in decision.options %}
+                <option value="{{ option.id }}">{{ option.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Confidence Score (0 – 100%)</label>
+            <input type="number" min="0" max="100" name="confidence" class="form-control" value="85" placeholder="85">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success btn-sm">Mark Complete & Continue to Journal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

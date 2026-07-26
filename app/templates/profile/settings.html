@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block breadcrumb %}
+<a href="{{ url_for('profile.index') }}">Account</a>
+<span class="separator">/</span>
+<span class="font-medium text-text">Settings</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-6">
+  <h1 class="page-title">Account Settings</h1>
+  <p class="page-subtitle">Manage your profile details, password, and system preferences.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+
+  <!-- Profile Details Form -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Profile Details</div></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('profile.settings') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="form_action" value="update_profile">
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          {{ profile_form.full_name(class="form-control" + (" is-invalid" if profile_form.full_name.errors else ""), id="full_name") }}
+          {% for error in profile_form.full_name.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          {{ profile_form.username(class="form-control" + (" is-invalid" if profile_form.username.errors else ""), id="username") }}
+          {% for error in profile_form.username.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          {{ profile_form.email(class="form-control" + (" is-invalid" if profile_form.email.errors else ""), id="email") }}
+          {% for error in profile_form.email.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full mt-2">Save Profile Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Password Update Form -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">Change Password</div></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('profile.settings') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="form_action" value="update_password">
+
+        <div class="form-group">
+          <label class="form-label" for="current_password">Current Password</label>
+          {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else ""), id="current_password") }}
+          {% for error in password_form.current_password.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="new_password">New Password</label>
+          {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else ""), id="new_password") }}
+          {% for error in password_form.new_password.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm New Password</label>
+          {{ password_form.confirm_password(class="form-control" + (" is-invalid" if password_form.confirm_password.errors else ""), id="confirm_password") }}
+          {% for error in password_form.confirm_password.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full mt-2">Update Password</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
